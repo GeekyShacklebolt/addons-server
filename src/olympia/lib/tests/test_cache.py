@@ -5,8 +5,14 @@ from django.utils import translation
 from django.core.cache import cache
 
 from olympia.lib.cache import (
-    cache_get_or_set, make_key, Message, Token, memoize, memoize_get,
-    memoize_key)
+    cache_get_or_set,
+    make_key,
+    Message,
+    Token,
+    memoize,
+    memoize_get,
+    memoize_key,
+)
 
 
 @override_settings(KEY_PREFIX='amo:test:')
@@ -22,17 +28,20 @@ def test_make_key():
 
     with translation.override('en-US'):
         assert (
-            make_key(u'é@øel', normalize=True) ==
-            '2798e65bbe384320c9da7930e93e63fb')
+            make_key(u'é@øel', normalize=True)
+            == '2798e65bbe384320c9da7930e93e63fb'
+        )
 
     assert (
-        make_key(u'é@øel', with_locale=False, normalize=True) ==
-        'a83feada27737072d4ec741640368f07')
+        make_key(u'é@øel', with_locale=False, normalize=True)
+        == 'a83feada27737072d4ec741640368f07'
+    )
 
     with translation.override('fr'):
         assert (
-            make_key(u'é@øel', normalize=True) ==
-            'bc5208e905c8dfcc521e4196e16cfa1a')
+            make_key(u'é@øel', normalize=True)
+            == 'bc5208e905c8dfcc521e4196e16cfa1a'
+        )
 
 
 def test_cache_get_or_set():
@@ -42,6 +51,7 @@ def test_cache_get_or_set():
     def some_function():
         some_function.call_count += 1
         return 'something'  # Needed for cache_get_or_set() to work.
+
     some_function.call_count = 0
 
     cache_get_or_set('my-key', some_function)
@@ -53,7 +63,8 @@ def test_cache_get_or_set():
 @override_settings(CACHE_PREFIX='testing')
 def test_memoize_key():
     assert memoize_key('foo', ['a', 'b'], {'c': 'e'}) == (
-        'testing:memoize:foo:9666a2a48c17dc1c308fb327c2a6e3a8')
+        'testing:memoize:foo:9666a2a48c17dc1c308fb327c2a6e3a8'
+    )
 
 
 def test_memoize():
@@ -65,7 +76,6 @@ def test_memoize():
 
 
 class TestToken(TestCase):
-
     def setUp(self):
         cache.clear()
 
@@ -104,7 +114,6 @@ class TestToken(TestCase):
 
 
 class TestMessage(TestCase):
-
     def setUp(self):
         cache.clear()
 

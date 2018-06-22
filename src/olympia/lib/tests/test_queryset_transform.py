@@ -10,10 +10,12 @@ class QuerysetTransformTestCase(TestCase):
         # We test with the SiteEvent model because it's a simple model
         # with no translated fields, no caching or other fancy features.
         SiteEvent.objects.create(start=datetime.now(), description='Zero')
-        first = SiteEvent.objects.create(start=datetime.now(),
-                                         description='First')
-        second = SiteEvent.objects.create(start=datetime.now(),
-                                          description='Second')
+        first = SiteEvent.objects.create(
+            start=datetime.now(), description='First'
+        )
+        second = SiteEvent.objects.create(
+            start=datetime.now(), description='Second'
+        )
         SiteEvent.objects.create(start=datetime.now(), description='Third')
         SiteEvent.objects.create(start=datetime.now(), description='')
 
@@ -24,10 +26,13 @@ class QuerysetTransformTestCase(TestCase):
             qs = TransformQuerySet(SiteEvent)
             qs = qs.exclude(description='').order_by('id')[1:3]
             qs = qs.transform(
-                lambda items: seen_by_first_transform.extend(list(items)))
+                lambda items: seen_by_first_transform.extend(list(items))
+            )
             qs = qs.transform(
                 lambda items: seen_by_second_transform.extend(
-                    list(reversed(items))))
+                    list(reversed(items))
+                )
+            )
         with self.assertNumQueries(1):
             assert list(qs) == [first, second]
         # Check that each transform function was hit correctly, once.

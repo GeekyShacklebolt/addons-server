@@ -23,81 +23,150 @@ class UserAdmin(admin.ModelAdmin):
     search_fields_response = 'email'
     inlines = (GroupUserInline,)
 
-    readonly_fields = ('id', 'picture_img', 'deleted', 'is_public',
-                       'last_login', 'last_login_ip', 'known_ip_adresses',
-                       'last_known_activity_time', 'ratings_created',
-                       'collections_created', 'addons_created', 'activity',
-                       'abuse_reports_by_this_user',
-                       'abuse_reports_for_this_user')
+    readonly_fields = (
+        'id',
+        'picture_img',
+        'deleted',
+        'is_public',
+        'last_login',
+        'last_login_ip',
+        'known_ip_adresses',
+        'last_known_activity_time',
+        'ratings_created',
+        'collections_created',
+        'addons_created',
+        'activity',
+        'abuse_reports_by_this_user',
+        'abuse_reports_for_this_user',
+    )
     fieldsets = (
-        (None, {
-            'fields': ('id', 'email', 'username', 'display_name',
-                       'biography', 'homepage', 'location', 'occupation',
-                       'picture_img'),
-        }),
-        ('Flags', {
-            'fields': ('display_collections', 'display_collections_fav',
-                       'deleted', 'is_public'),
-        }),
-        ('Content', {
-            'fields': ('addons_created', 'collections_created',
-                       'ratings_created')
-        }),
-        ('Abuse Reports', {
-            'fields': ('abuse_reports_by_this_user',
-                       'abuse_reports_for_this_user')
-        }),
-        ('Admin', {
-            'fields': ('last_login', 'last_known_activity_time', 'activity',
-                       'last_login_ip', 'known_ip_adresses', 'notes', ),
-        }),
+        (
+            None,
+            {
+                'fields': (
+                    'id',
+                    'email',
+                    'username',
+                    'display_name',
+                    'biography',
+                    'homepage',
+                    'location',
+                    'occupation',
+                    'picture_img',
+                )
+            },
+        ),
+        (
+            'Flags',
+            {
+                'fields': (
+                    'display_collections',
+                    'display_collections_fav',
+                    'deleted',
+                    'is_public',
+                )
+            },
+        ),
+        (
+            'Content',
+            {
+                'fields': (
+                    'addons_created',
+                    'collections_created',
+                    'ratings_created',
+                )
+            },
+        ),
+        (
+            'Abuse Reports',
+            {
+                'fields': (
+                    'abuse_reports_by_this_user',
+                    'abuse_reports_for_this_user',
+                )
+            },
+        ),
+        (
+            'Admin',
+            {
+                'fields': (
+                    'last_login',
+                    'last_known_activity_time',
+                    'activity',
+                    'last_login_ip',
+                    'known_ip_adresses',
+                    'notes',
+                )
+            },
+        ),
     )
 
     def picture_img(self, obj):
         return format_html(u'<img src="{}" />', obj.picture_url)
+
     picture_img.short_description = _(u'Profile Photo')
 
     def known_ip_adresses(self, obj):
-        ip_adresses = set(Rating.objects.filter(user=obj)
-                                .values_list('ip_address', flat=True)
-                                .order_by().distinct())
+        ip_adresses = set(
+            Rating.objects.filter(user=obj)
+            .values_list('ip_address', flat=True)
+            .order_by()
+            .distinct()
+        )
         ip_adresses.add(obj.last_login_ip)
         contents = format_html_join(
-            '', "<li>{}</li>", ((ip,) for ip in ip_adresses))
+            '', "<li>{}</li>", ((ip,) for ip in ip_adresses)
+        )
         return format_html('<ul>{}</ul>', contents)
 
     def last_known_activity_time(self, obj):
         from django.contrib.admin.utils import display_for_value
+
         # We sort by -created by default, so first() gives us the last one, or
         # None.
-        return display_for_value(UserLog.objects.filter(
-            user=obj).values_list('created', flat=True).first())
+        return display_for_value(
+            UserLog.objects.filter(user=obj)
+            .values_list('created', flat=True)
+            .first()
+        )
 
-    def related_content_link(self, obj, related_class, related_field,
-                             related_manager='objects'):
+    def related_content_link(
+        self, obj, related_class, related_field, related_manager='objects'
+    ):
         url = 'admin:{}_{}_changelist'.format(
-            related_class._meta.app_label, related_class._meta.model_name)
+            related_class._meta.app_label, related_class._meta.model_name
+        )
         queryset = getattr(related_class, related_manager).filter(
-            **{related_field: obj})
+            **{related_field: obj}
+        )
         return format_html(
             '<a href="{}?{}={}">{}</a>',
-            reverse(url), related_field, obj.pk, queryset.count())
+            reverse(url),
+            related_field,
+            obj.pk,
+            queryset.count(),
+        )
 
     def collections_created(self, obj):
         return self.related_content_link(obj, Collection, 'author')
+
     collections_created.short_description = _('Collections')
 
     def addons_created(self, obj):
-        return self.related_content_link(obj, Addon, 'authors',
-                                         related_manager='unfiltered')
+        return self.related_content_link(
+            obj, Addon, 'authors', related_manager='unfiltered'
+        )
+
     addons_created.short_description = _('Addons')
 
     def ratings_created(self, obj):
         return self.related_content_link(obj, Rating, 'user')
+
     ratings_created.short_description = _('Ratings')
 
     def activity(self, obj):
         return self.related_content_link(obj, ActivityLog, 'user')
+
     activity.short_description = _('Activity Logs')
 
     def abuse_reports_by_this_user(self, obj):
@@ -124,7 +193,8 @@ class DeniedModelAdmin(admin.ModelAdmin):
                         continue
                     try:
                         self.deny_list_model.objects.create(
-                            **{self.model_field: x.lower()})
+                            **{self.model_field: x.lower()}
+                        )
                         inserted += 1
                     except IntegrityError:
                         # although unlikely, someone else could have added

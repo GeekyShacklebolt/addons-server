@@ -7,8 +7,12 @@ from django.utils.translation.trans_real import to_language
 
 from .hold import add_translation, make_key, save_translations
 from .models import (
-    LinkifiedTranslation, NoLinksNoMarkupTranslation, NoLinksTranslation,
-    PurifiedTranslation, Translation)
+    LinkifiedTranslation,
+    NoLinksNoMarkupTranslation,
+    NoLinksTranslation,
+    PurifiedTranslation,
+    Translation,
+)
 from .widgets import TransInput, TransTextarea
 
 
@@ -20,14 +24,20 @@ class TranslatedField(models.ForeignKey):
     we will look for 1) a translation in the current locale and 2) fallback
     with any translation matching the foreign key.
     """
+
     to = Translation
     requires_unique_target = False
 
     def __init__(self, **kwargs):
         # to_field: The field on the related object that the relation is to.
         # Django wants to default to translations.autoid, but we need id.
-        options = dict(null=True, to_field='id', unique=True, blank=True,
-                       on_delete=models.SET_NULL)
+        options = dict(
+            null=True,
+            to_field='id',
+            unique=True,
+            blank=True,
+            on_delete=models.SET_NULL,
+        )
         kwargs.update(options)
         self.short = kwargs.pop('short', True)
         self.require_locale = kwargs.pop('require_locale', True)
@@ -116,6 +126,7 @@ def save_on_signal(obj, trans):
             is_new = trans.autoid is None
             trans.save(force_insert=is_new, force_update=not is_new)
             signal.disconnect(cb)
+
     signal.connect(cb, sender=obj.__class__, weak=False)
 
 
@@ -215,7 +226,6 @@ class TranslationDescriptor(related.ReverseSingleRelatedObjectDescriptor):
 
 
 class _TransField(object):
-
     def __init__(self, *args, **kwargs):
         self.default_locale = settings.LANGUAGE_CODE
         for k in ('queryset', 'to_field_name', 'limit_choices_to'):
@@ -260,7 +270,6 @@ class _TransField(object):
 
 
 class LocaleValidationError(forms.ValidationError):
-
     def __init__(self, messages, code=None, params=None):
         self.msgs = messages
 

@@ -76,8 +76,7 @@ RATINGS_MODERATE = AclPermission('Ratings', 'Moderate')
 REVIEWS_ADMIN = AclPermission('Reviews', 'Admin')
 
 # All permissions, for easy introspection
-PERMISSIONS_LIST = [
-    x for x in vars().values() if isinstance(x, AclPermission)]
+PERMISSIONS_LIST = [x for x in vars().values() if isinstance(x, AclPermission)]
 
 # Mapping between django-style object permissions and our own. By default,
 # require superuser admins (which also have all other permissions anyway) to do
@@ -86,12 +85,12 @@ DJANGO_PERMISSIONS_MAPPING = defaultdict(lambda: SUPERPOWERS)
 # Curators can do anything to ReplacementAddon. In addition, the modeladmin
 # will also check for addons:edit and give them read-only access to the
 # changelist (obj=None passed to the has_change_permission() method)
-DJANGO_PERMISSIONS_MAPPING.update({
-    'addons.change_replacementaddon': ADMIN_CURATION,
-    'addons.add_replacementaddon': ADMIN_CURATION,
-    'addons.delete_replacementaddon': ADMIN_CURATION,
-
-    'users.change_userprofile': USERS_EDIT,
-
-    'ratings.change_rating': RATINGS_MODERATE,
-})
+DJANGO_PERMISSIONS_MAPPING.update(
+    {
+        'addons.change_replacementaddon': ADMIN_CURATION,
+        'addons.add_replacementaddon': ADMIN_CURATION,
+        'addons.delete_replacementaddon': ADMIN_CURATION,
+        'users.change_userprofile': USERS_EDIT,
+        'ratings.change_rating': RATINGS_MODERATE,
+    }
+)

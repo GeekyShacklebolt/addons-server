@@ -25,14 +25,16 @@ class ManualOrderTest(TestCase):
 
         semi_arbitrary_order = [40, 5299, 3615]
         addons = amo_models.manual_order(
-            Addon.objects.all(), semi_arbitrary_order)
+            Addon.objects.all(), semi_arbitrary_order
+        )
         assert semi_arbitrary_order == [addon.id for addon in addons]
 
 
 def test_skip_cache():
     assert (
-        getattr(amo_models._locals, 'skip_cache') is
-        not settings.CACHE_MACHINE_ENABLED)
+        getattr(amo_models._locals, 'skip_cache')
+        is not settings.CACHE_MACHINE_ENABLED
+    )
 
     setattr(amo_models._locals, 'skip_cache', False)
 
@@ -116,12 +118,12 @@ class TestModelBase(TestCase):
         assert kw['sender'] == Addon
 
     def test_change_is_not_recursive(self):
-
         class fn:
             called = False
 
-        def callback(old_attr=None, new_attr=None, instance=None,
-                     sender=None, **kw):
+        def callback(
+            old_attr=None, new_attr=None, instance=None, sender=None, **kw
+        ):
             fn.called = True
             # Both save and update should be protected:
             instance.update(public_stats=True)
@@ -182,7 +184,6 @@ def test_cache_key():
 
 
 class BasePreviewMixin(object):
-
     def get_object(self):
         raise NotImplementedError
 

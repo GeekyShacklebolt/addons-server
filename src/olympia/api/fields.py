@@ -20,6 +20,7 @@ class ReverseChoiceField(fields.ChoiceField):
     Note that the values in the `choices_dict` must be unique, since they are
     used for both serialization and de-serialization.
     """
+
     def __init__(self, *args, **kwargs):
         self.reversed_choices = {v: k for k, v in kwargs['choices']}
         super(ReverseChoiceField, self).__init__(*args, **kwargs)
@@ -62,10 +63,12 @@ class TranslationSerializerField(fields.Field):
       Else, just returns a dict with all translations for the given
       `field_name` on `obj`, with languages as the keys.
     """
+
     default_error_messages = {
-        'min_length': _(u'The field must have a length of at least {num} '
-                        u'characters.'),
-        'unknown_locale': _(u'The language code {lang_code} is invalid.')
+        'min_length': _(
+            u'The field must have a length of at least {num} ' u'characters.'
+        ),
+        'unknown_locale': _(u'The language code {lang_code} is invalid.'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -74,9 +77,16 @@ class TranslationSerializerField(fields.Field):
 
     def fetch_all_translations(self, obj, source, field):
         translations = field.__class__.objects.filter(
-            id=field.id, localized_string__isnull=False)
-        return {to_language(trans.locale): unicode(trans)
-                for trans in translations} if translations else None
+            id=field.id, localized_string__isnull=False
+        )
+        return (
+            {
+                to_language(trans.locale): unicode(trans)
+                for trans in translations
+            }
+            if translations
+            else None
+        )
 
     def fetch_single_translation(self, obj, source, field, requested_language):
         return unicode(field) if field else None
@@ -95,8 +105,9 @@ class TranslationSerializerField(fields.Field):
             requested_language = request.GET['lang']
 
         if requested_language:
-            return self.fetch_single_translation(obj, source, field,
-                                                 requested_language)
+            return self.fetch_single_translation(
+                obj, source, field, requested_language
+            )
         else:
             return self.fetch_all_translations(obj, source, field)
 
@@ -125,14 +136,17 @@ class TranslationSerializerField(fields.Field):
                 if locale.lower() not in settings.LANGUAGES:
                     raise ValidationError(
                         self.error_messages['unknown_locale'].format(
-                            lang_code=repr(locale)))
+                            lang_code=repr(locale)
+                        )
+                    )
                 if string and (len(string.strip()) >= self.min_length):
                     value_too_short = False
                     break
 
         if self.min_length and value_too_short:
             raise ValidationError(
-                self.error_messages['min_length'].format(num=self.min_length))
+                self.error_messages['min_length'].format(num=self.min_length)
+            )
 
 
 class ESTranslationSerializerField(TranslationSerializerField):
@@ -140,6 +154,7 @@ class ESTranslationSerializerField(TranslationSerializerField):
     Like TranslationSerializerField, but fetching the data from a dictionary
     built from ES data that we previously attached on the object.
     """
+
     suffix = '_translations'
     _source = None
 
@@ -171,8 +186,10 @@ class ESTranslationSerializerField(TranslationSerializerField):
             target_name = source_name
         target_key = '%s%s' % (target_name, self.suffix)
         source_key = '%s%s' % (source_name, self.suffix)
-        target_translations = {v.get('lang', ''): v.get('string', '')
-                               for v in data.get(source_key, {}) or {}}
+        target_translations = {
+            v.get('lang', ''): v.get('string', '')
+            for v in data.get(source_key, {}) or {}
+        }
         setattr(obj, target_key, target_translations)
 
         # Serializer might need the single translation in the current language,
@@ -180,10 +197,13 @@ class ESTranslationSerializerField(TranslationSerializerField):
         # fake Translation() instance to prevent SQL queries from being
         # automatically made by the translations app.
         translation = self.fetch_single_translation(
-            obj, target_name, target_translations, get_language())
+            obj, target_name, target_translations, get_language()
+        )
         value = (
             Translation(localized_string=translation)
-            if translation is not None else translation)
+            if translation is not None
+            else translation
+        )
         setattr(obj, target_name, value)
 
     def fetch_all_translations(self, obj, source, field):
@@ -191,10 +211,13 @@ class ESTranslationSerializerField(TranslationSerializerField):
 
     def fetch_single_translation(self, obj, source, field, requested_language):
         translations = self.fetch_all_translations(obj, source, field) or {}
-        return (translations.get(requested_language) or
-                translations.get(getattr(obj, 'default_locale', None)) or
-                translations.get(getattr(obj, 'default_language', None)) or
-                translations.get(settings.LANGUAGE_CODE) or None)
+        return (
+            translations.get(requested_language)
+            or translations.get(getattr(obj, 'default_locale', None))
+            or translations.get(getattr(obj, 'default_language', None))
+            or translations.get(settings.LANGUAGE_CODE)
+            or None
+        )
 
 
 class SplitField(fields.Field):
@@ -205,6 +228,7 @@ class SplitField(fields.Field):
     Example usage:
     addon = SplitField(serializers.PrimaryKeyRelatedField(), AddonSerializer())
     """
+
     label = None
 
     def __init__(self, _input, output, **kwargs):
@@ -247,16 +271,18 @@ class SlugOrPrimaryKeyRelatedField(serializers.RelatedField):
     `render_as` argument (either "pk" or "slug") to indicate how to
     serialize.
     """
+
     read_only = False
 
     def __init__(self, *args, **kwargs):
         self.render_as = kwargs.pop('render_as', 'pk')
         if self.render_as not in ['pk', 'slug']:
-            raise ValueError("'render_as' must be one of 'pk' or 'slug', "
-                             "not %r" % (self.render_as,))
+            raise ValueError(
+                "'render_as' must be one of 'pk' or 'slug', "
+                "not %r" % (self.render_as,)
+            )
         self.slug_field = kwargs.pop('slug_field', 'slug')
-        super(SlugOrPrimaryKeyRelatedField, self).__init__(
-            *args, **kwargs)
+        super(SlugOrPrimaryKeyRelatedField, self).__init__(*args, **kwargs)
 
     def to_representation(self, obj):
         if self.render_as == 'slug':
@@ -271,6 +297,7 @@ class SlugOrPrimaryKeyRelatedField(serializers.RelatedField):
             try:
                 return self.queryset.get(**{self.slug_field: data})
             except ObjectDoesNotExist:
-                msg = (_('Invalid pk or slug "%s" - object does not exist.') %
-                       smart_text(data))
+                msg = _(
+                    'Invalid pk or slug "%s" - object does not exist.'
+                ) % smart_text(data)
                 raise ValidationError(msg)

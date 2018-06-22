@@ -17,7 +17,6 @@ from olympia.versions.models import Version
 
 
 class TestWSGIApplication(TestCase):
-
     def setUp(self):
         super(TestWSGIApplication, self).setUp()
         self.environ = {'wsgi.input': StringIO()}
@@ -28,7 +27,7 @@ class TestWSGIApplication(TestCase):
         urls = {
             '/themes/update-check/5': ['en-US', 5, None],
             '/en-US/themes/update-check/5': ['en-US', 5, None],
-            '/fr/themes/update-check/5': ['fr', 5, None]
+            '/fr/themes/update-check/5': ['fr', 5, None],
         }
 
         # From AMO we consume the ID as the `addon_id`.
@@ -53,7 +52,7 @@ class TestWSGIApplication(TestCase):
             '/xxx',
             '/themes/update-check/xxx',
             '/en-US/themes/update-check/xxx',
-            '/fr/themes/update-check/xxx'
+            '/fr/themes/update-check/xxx',
         ]
 
         for path_info in urls:
@@ -80,10 +79,11 @@ class TestThemeUpdate(TestCase):
             'headerURL': '/15663/BCBG_Persona_header2.png?modified=fakehash',
             'name': 'My Persona',
             'author': 'persona_author',
-            'updateURL': (settings.VAMO_URL +
-                          '/en-US/themes/update-check/15663'),
+            'updateURL': (
+                settings.VAMO_URL + '/en-US/themes/update-check/15663'
+            ),
             'version': '0',
-            'footerURL': '/15663/BCBG_Persona_footer2.png?modified=fakehash'
+            'footerURL': '/15663/BCBG_Persona_footer2.png?modified=fakehash',
         }
 
     def check_good(self, data):
@@ -91,11 +91,12 @@ class TestThemeUpdate(TestCase):
             got = data[k]
             if k.endswith('URL'):
                 if k in ('detailURL', 'updateURL'):
-                    assert got.startswith('http'), (
-                        'Expected absolute URL for "%s": %s' % (k, got))
-                assert got.endswith(v), (
-                    'Expected "%s" to end with "%s". Got "%s".' % (
-                        k, v, got))
+                    assert got.startswith(
+                        'http'
+                    ), 'Expected absolute URL for "%s": %s' % (k, got)
+                assert got.endswith(
+                    v
+                ), 'Expected "%s" to end with "%s". Got "%s".' % (k, v, got)
 
     def get_update(self, *args):
         update = theme_update.ThemeUpdate(*args)
@@ -116,19 +117,22 @@ class TestThemeUpdate(TestCase):
         addon.increment_theme_version_number()
 
         # Testing `addon_id` from AMO.
-        self.check_good(
-            json.loads(self.get_update('en-US', 15663).get_json()))
+        self.check_good(json.loads(self.get_update('en-US', 15663).get_json()))
 
         # Testing `persona_id` from GP.
-        self.good.update({
-            'id': '813',
-            'updateURL': (settings.VAMO_URL +
-                          '/en-US/themes/update-check/813?src=gp'),
-            'version': '1'
-        })
+        self.good.update(
+            {
+                'id': '813',
+                'updateURL': (
+                    settings.VAMO_URL + '/en-US/themes/update-check/813?src=gp'
+                ),
+                'version': '1',
+            }
+        )
 
         self.check_good(
-            json.loads(self.get_update('en-US', 813, 'src=gp').get_json()))
+            json.loads(self.get_update('en-US', 813, 'src=gp').get_json())
+        )
 
     def test_blank_footer_url(self):
         addon = Addon.objects.get()

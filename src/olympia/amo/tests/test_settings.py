@@ -4,9 +4,16 @@ from django.conf import settings
 import pytest
 
 
-@pytest.mark.parametrize('key', (
-    'NETAPP_STORAGE', 'GUARDED_ADDONS_PATH', 'MEDIA_ROOT', 'TMP_PATH',
-    'MEDIA_ROOT'))
+@pytest.mark.parametrize(
+    'key',
+    (
+        'NETAPP_STORAGE',
+        'GUARDED_ADDONS_PATH',
+        'MEDIA_ROOT',
+        'TMP_PATH',
+        'MEDIA_ROOT',
+    ),
+)
 def test_base_paths_bytestring(key):
     """Make sure all relevant base paths are bytestrings.
 

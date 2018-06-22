@@ -24,8 +24,15 @@ class BaseRatingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rating
-        fields = ('id', 'addon', 'body', 'created', 'is_latest',
-                  'previous_count', 'user')
+        fields = (
+            'id',
+            'addon',
+            'body',
+            'created',
+            'is_latest',
+            'previous_count',
+            'user',
+        )
 
     def __init__(self, *args, **kwargs):
         super(BaseRatingSerializer, self).__init__(*args, **kwargs)
@@ -38,10 +45,7 @@ class BaseRatingSerializer(serializers.ModelSerializer):
         # view if there is one.
         addon = self.context['view'].get_addon_object() or obj.addon
 
-        return {
-            'id': addon.id,
-            'slug': addon.slug
-        }
+        return {'id': addon.id, 'slug': addon.slug}
 
     def validate(self, data):
         data = super(BaseRatingSerializer, self).validate(data)
@@ -58,7 +62,8 @@ class BaseRatingSerializer(serializers.ModelSerializer):
             data['addon'] = self.context['view'].get_addon_object()
             if data['addon'] is None:
                 raise serializers.ValidationError(
-                    {'addon': ugettext('This field is required.')})
+                    {'addon': ugettext('This field is required.')}
+                )
 
             # Get the user from the request, don't allow clients to pick one
             # themselves.
@@ -70,9 +75,13 @@ class BaseRatingSerializer(serializers.ModelSerializer):
             # When editing, you can't change the add-on.
             if self.context['request'].data.get('addon'):
                 raise serializers.ValidationError(
-                    {'addon': ugettext(
-                        u'You can\'t change the add-on of a review once'
-                        u' it has been created.')})
+                    {
+                        'addon': ugettext(
+                            u'You can\'t change the add-on of a review once'
+                            u' it has been created.'
+                        )
+                    }
+                )
 
         # Clean up body and automatically flag the review if an URL was in it.
         body = data.get('body', '')
@@ -96,12 +105,15 @@ class BaseRatingSerializer(serializers.ModelSerializer):
 
 class RatingSerializerReply(BaseRatingSerializer):
     """Serializer used for replies only."""
+
     body = serializers.CharField(
-        allow_null=False, required=True, allow_blank=False)
+        allow_null=False, required=True, allow_blank=False
+    )
 
     def to_representation(self, obj):
         should_access_deleted = getattr(
-            self.context['view'], 'should_access_deleted_ratings', False)
+            self.context['view'], 'should_access_deleted_ratings', False
+        )
         if obj.deleted and not should_access_deleted:
             return None
         return super(RatingSerializerReply, self).to_representation(obj)
@@ -118,7 +130,8 @@ class RatingSerializerReply(BaseRatingSerializer):
             # Only one level of replying is allowed, so if it's already a
             # reply, we shouldn't allow that.
             msg = ugettext(
-                u'You can\'t reply to a review that is already a reply.')
+                u'You can\'t reply to a review that is already a reply.'
+            )
             raise serializers.ValidationError(msg)
 
         data = super(RatingSerializerReply, self).validate(data)
@@ -126,7 +139,6 @@ class RatingSerializerReply(BaseRatingSerializer):
 
 
 class RatingVersionSerializer(SimpleVersionSerializer):
-
     class Meta:
         model = Version
         fields = ('id', 'version')
@@ -147,13 +159,16 @@ class RatingSerializer(BaseRatingSerializer):
     class Meta:
         model = Rating
         fields = BaseRatingSerializer.Meta.fields + (
-            'score', 'reply', 'version')
+            'score',
+            'reply',
+            'version',
+        )
 
     def __init__(self, *args, **kwargs):
         super(RatingSerializer, self).__init__(*args, **kwargs)
-        score_to_rating = (
-            self.request and
-            is_gate_active(self.request, 'ratings-rating-shim'))
+        score_to_rating = self.request and is_gate_active(
+            self.request, 'ratings-rating-shim'
+        )
         if score_to_rating:
             score_field = self.fields.pop('score')
             score_field.source = None  # drf complains if we specifiy source.
@@ -162,8 +177,11 @@ class RatingSerializer(BaseRatingSerializer):
     def validate_version(self, version):
         if self.partial:
             raise serializers.ValidationError(
-                ugettext(u'You can\'t change the version of the add-on '
-                         u'reviewed once the review has been created.'))
+                ugettext(
+                    u'You can\'t change the version of the add-on '
+                    u'reviewed once the review has been created.'
+                )
+            )
 
         addon = self.context['view'].get_addon_object()
         if not addon:
@@ -172,8 +190,11 @@ class RatingSerializer(BaseRatingSerializer):
             return None
         if version.addon_id != addon.pk or not version.is_public():
             raise serializers.ValidationError(
-                ugettext(u'This version of the add-on doesn\'t exist or '
-                         u'isn\'t public.'))
+                ugettext(
+                    u'This version of the add-on doesn\'t exist or '
+                    u'isn\'t public.'
+                )
+            )
         return version
 
     def validate(self, data):
@@ -181,13 +202,24 @@ class RatingSerializer(BaseRatingSerializer):
         if not self.partial:
             if data['addon'].authors.filter(pk=data['user'].pk).exists():
                 raise serializers.ValidationError(
-                    ugettext(u'You can\'t leave a review on your own add-on.'))
+                    ugettext(u'You can\'t leave a review on your own add-on.')
+                )
 
-            rating_exists_on_this_version = Rating.objects.no_cache().filter(
-                addon=data['addon'], user=data['user'],
-                version=data['version']).using('default').exists()
+            rating_exists_on_this_version = (
+                Rating.objects.no_cache()
+                .filter(
+                    addon=data['addon'],
+                    user=data['user'],
+                    version=data['version'],
+                )
+                .using('default')
+                .exists()
+            )
             if rating_exists_on_this_version:
                 raise serializers.ValidationError(
-                    ugettext(u'You can\'t leave more than one review for the '
-                             u'same version of an add-on.'))
+                    ugettext(
+                        u'You can\'t leave more than one review for the '
+                        u'same version of an add-on.'
+                    )
+                )
         return data

@@ -48,21 +48,33 @@ class Command(BaseCommand):
     - count
 
     """
+
     help = __doc__
 
     def add_arguments(self, parser):
         """Handle command arguments."""
         parser.add_argument('folder_name', default='hive_results', nargs='?')
         parser.add_argument(
-            '--stats_source', default='s3',
+            '--stats_source',
+            default='s3',
             choices=['s3', 'file'],
-            help='Source of stats data')
+            help='Source of stats data',
+        )
         parser.add_argument(
-            '--date', action='store', type=str,
-            dest='date', help='Date in the YYYY-MM-DD format.')
+            '--date',
+            action='store',
+            type=str,
+            dest='date',
+            help='Date in the YYYY-MM-DD format.',
+        )
         parser.add_argument(
-            '--separator', action='store', type=str, default='\t',
-            dest='separator', help='Field separator in file.')
+            '--separator',
+            action='store',
+            type=str,
+            default='\t',
+            dest='separator',
+            help='Field separator in file.',
+        )
 
     def handle(self, *args, **options):
         sep = options['separator']
@@ -72,9 +84,15 @@ class Command(BaseCommand):
             day = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
 
         if options['stats_source'] == 's3':
-            filepath = 's3://' + '/'.join([settings.AWS_STATS_S3_BUCKET,
-                                           'amo_stats', 'theme_update_counts',
-                                           day, '000000_0'])
+            filepath = 's3://' + '/'.join(
+                [
+                    settings.AWS_STATS_S3_BUCKET,
+                    'amo_stats',
+                    'theme_update_counts',
+                    day,
+                    '000000_0',
+                ]
+            )
 
         elif options['stats_source'] == 'file':
             folder = options['folder_name']
@@ -83,8 +101,9 @@ class Command(BaseCommand):
 
         # Make sure we're not trying to update with mismatched data.
         if get_date(filepath, sep) != day:
-            raise CommandError('%s file contains data for another day' %
-                               filepath)
+            raise CommandError(
+                '%s file contains data for another day' % filepath
+            )
 
         # First, make sure we don't have any existing counts for the same day,
         # or it would just increment again the same data.
@@ -95,15 +114,19 @@ class Command(BaseCommand):
         # Preload a set containing the ids of all the persona Add-on objects
         # that we care about. When looping, if we find an id that is not in
         # that set, we'll reject it.
-        addons = set(Addon.objects.filter(type=amo.ADDON_PERSONA,
-                                          status=amo.STATUS_PUBLIC,
-                                          persona__isnull=False)
-                                  .values_list('id', flat=True))
+        addons = set(
+            Addon.objects.filter(
+                type=amo.ADDON_PERSONA,
+                status=amo.STATUS_PUBLIC,
+                persona__isnull=False,
+            ).values_list('id', flat=True)
+        )
         # Preload all the Personas once and for all. This builds a dict where
         # each key (the persona_id we get from the hive query) has the addon_id
         # as value.
-        persona_to_addon = dict(Persona.objects.values_list('persona_id',
-                                                            'addon_id'))
+        persona_to_addon = dict(
+            Persona.objects.values_list('persona_id', 'addon_id')
+        )
 
         count_file = get_stats_data(filepath)
         for index, line in enumerate(count_file):
@@ -138,8 +161,7 @@ class Command(BaseCommand):
             if addon_id in theme_update_counts:
                 tuc = theme_update_counts[addon_id]
             else:
-                tuc = ThemeUpdateCount(addon_id=addon_id, date=day,
-                                       count=0)
+                tuc = ThemeUpdateCount(addon_id=addon_id, date=day, count=0)
                 theme_update_counts[addon_id] = tuc
 
             # We can now fill the ThemeUpdateCount object.

@@ -45,11 +45,9 @@ class TranslationFormMixin(object):
 
 
 class LocaleErrorList(ErrorList):
-
     def _errors(self):
         # Pull error messages out of (locale, error) pairs.
-        return (e[1] if isinstance(e, tuple) else e
-                for e in self)
+        return (e[1] if isinstance(e, tuple) else e for e in self)
 
     def __contains__(self, value):
         return value in self._errors()
@@ -65,8 +63,10 @@ class LocaleErrorList(ErrorList):
             else:
                 e, extra = item, ''
             li.append((extra, conditional_escape(force_text(e))))
-        return mark_safe('<ul class="errorlist">%s</ul>' %
-                         ''.join(u'<li%s>%s</li>' % x for x in li))
+        return mark_safe(
+            '<ul class="errorlist">%s</ul>'
+            % ''.join(u'<li%s>%s</li>' % x for x in li)
+        )
 
     # Override Django 1.7's `__getitem__` which wraps the error with
     # `force_text` converting our tuples to strings.

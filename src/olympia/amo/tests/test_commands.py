@@ -15,7 +15,8 @@ def sample_cron_job(*args):
 
 
 @override_settings(
-    CRON_JOBS={'sample_cron_job': 'olympia.amo.tests.test_commands'})
+    CRON_JOBS={'sample_cron_job': 'olympia.amo.tests.test_commands'}
+)
 @mock.patch('olympia.amo.tests.test_commands.sample_cron_job')
 def test_cron_command(_mock):
     assert _mock.call_count == 0
@@ -25,7 +26,8 @@ def test_cron_command(_mock):
 
 
 @override_settings(
-    CRON_JOBS={'sample_cron_job': 'olympia.amo.tests.test_commands'})
+    CRON_JOBS={'sample_cron_job': 'olympia.amo.tests.test_commands'}
+)
 def test_cron_command_no_job():
     with pytest.raises(CommandError) as error_info:
         call_command('cron')

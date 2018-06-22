@@ -15,8 +15,7 @@ from django.conf import settings
 def make_key(key, with_locale=True, normalize=False):
     """Generate the full key for ``k``, with a prefix."""
     if with_locale:
-        key = u'{key}:{lang}'.format(
-            key=key, lang=translation.get_language())
+        key = u'{key}:{lang}'.format(key=key, lang=translation.get_language())
 
     if normalize:
         return hashlib.md5(encoding.smart_bytes(key)).hexdigest()
@@ -64,8 +63,11 @@ def memoize_key(prefix, *args, **kwargs):
     key = hashlib.md5()
     for arg in itertools.chain(args, sorted(kwargs.items())):
         key.update(str(arg))
-    return '%s:memoize:%s:%s' % (settings.CACHE_PREFIX,
-                                 prefix, key.hexdigest())
+    return '%s:memoize:%s:%s' % (
+        settings.CACHE_PREFIX,
+        prefix,
+        key.hexdigest(),
+    )
 
 
 def memoize_get(prefix, *args, **kwargs):
@@ -95,6 +97,7 @@ def memoize(prefix, time=60):
     :param time: number of seconds to cache the key for, default 60 seconds
     :type time: integer
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -105,7 +108,9 @@ def memoize(prefix, time=60):
             data = func(*args, **kwargs)
             cache.set(key, data, time)
             return data
+
         return wrapper
+
     return decorator
 
 
@@ -113,6 +118,7 @@ class Message(object):
     """
     A simple class to store an item in memcache, given a key.
     """
+
     def __init__(self, key):
         self.key = '%s:message:%s' % (settings.CACHE_PREFIX, key)
 
@@ -133,6 +139,7 @@ class Token(object):
     """
     A simple token stored in the cache.
     """
+
     _well_formed = re.compile('^[a-z0-9-]+$')
 
     def __init__(self, token=None, data=True):
@@ -178,6 +185,7 @@ class Token(object):
 
 class CacheStatTracker(BaseCache):
     """A small class used to track cache calls."""
+
     requests_limit = 5000
 
     def __init__(self, location, params):
@@ -201,18 +209,27 @@ class CacheStatTracker(BaseCache):
 
     def _proxy(self, name):
         def _real_proxy(*args, **kwargs):
-            self.requests_log.append({
-                'name': name,
-                'args': args,
-                'kwargs': kwargs,
-            })
+            self.requests_log.append(
+                {'name': name, 'args': args, 'kwargs': kwargs}
+            )
             return getattr(self._real_cache, name)(*args, **kwargs)
+
         return _real_proxy
 
     def _setup_proxies(self):
         mappings = (
-            'add', 'get', 'set', 'delete', 'clear', 'has_key', 'incr', 'decr',
-            'get_many', 'set_many', 'delete_many')
+            'add',
+            'get',
+            'set',
+            'delete',
+            'clear',
+            'has_key',
+            'incr',
+            'decr',
+            'get_many',
+            'set_many',
+            'delete_many',
+        )
 
         for name in mappings:
             setattr(self, name, self._proxy(name))
@@ -231,5 +248,6 @@ def assert_cache_requests(num):
     executed = len(cache_using.requests_log)
 
     assert executed == num, "%d requests executed, %d expected" % (
-        executed, num,
+        executed,
+        num,
     )

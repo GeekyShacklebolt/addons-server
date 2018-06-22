@@ -7,7 +7,6 @@ from olympia.access import acl
 
 
 class AllowCollectionAuthor(BasePermission):
-
     def has_permission(self, request, view):
         return view.get_account_viewset().self_view
 
@@ -26,7 +25,9 @@ class AllowCollectionContributor(BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return (
-            obj and
-            obj.pk == settings.COLLECTION_FEATURED_THEMES_ID and
-            acl.action_allowed(request, amo.permissions.COLLECTIONS_CONTRIBUTE)
+            obj
+            and obj.pk == settings.COLLECTION_FEATURED_THEMES_ID
+            and acl.action_allowed(
+                request, amo.permissions.COLLECTIONS_CONTRIBUTE
+            )
         )

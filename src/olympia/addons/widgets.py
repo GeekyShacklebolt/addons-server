@@ -17,11 +17,16 @@ class IconWidgetRenderer(forms.RadioSelect.renderer):
         for w in self:
             value = w.choice_value
             if value.split('/')[0] == 'icon' or value == '':
-                o = (("<li><a href='#' class='%s'>"
-                      "<img src='%simg/addon-icons/%s-32.png' alt=''>"
-                      "</a>%s</li>") %
-                     ('active' if self.value == w.choice_value else '',
-                      settings.STATIC_URL, w.choice_label, w))
+                o = (
+                    "<li><a href='#' class='%s'>"
+                    "<img src='%simg/addon-icons/%s-32.png' alt=''>"
+                    "</a>%s</li>"
+                ) % (
+                    'active' if self.value == w.choice_value else '',
+                    settings.STATIC_URL,
+                    w.choice_label,
+                    w,
+                )
             else:
                 o = "<li class='hide'>%s</li>" % w
             output.append(o)
@@ -46,7 +51,8 @@ class CategoriesSelectMultiple(forms.CheckboxSelectMultiple):
         for c in self.choices:
             if c[0] in miscs:
                 msg = ugettext(
-                    'My add-on doesn\'t fit into any of the categories')
+                    'My add-on doesn\'t fit into any of the categories'
+                )
                 other = (c[0], msg)
             else:
                 choices.append(c)
@@ -67,19 +73,23 @@ class CategoriesSelectMultiple(forms.CheckboxSelectMultiple):
 
             for i, (option_value, option_label) in group:
                 if has_id:
-                    final_attrs = dict(final_attrs,
-                                       id='%s_%s' % (attrs['id'], i))
+                    final_attrs = dict(
+                        final_attrs, id='%s_%s' % (attrs['id'], i)
+                    )
                     label_for = u' for="%s"' % final_attrs['id']
                 else:
                     label_for = ''
 
                 cb = forms.CheckboxInput(
-                    final_attrs, check_test=lambda value: value in str_values)
+                    final_attrs, check_test=lambda value: value in str_values
+                )
                 option_value = force_text(option_value)
                 rendered_cb = cb.render(name, option_value)
                 option_label = conditional_escape(force_text(option_label))
-                output.append(u'<li><label%s>%s %s</label></li>' % (
-                    label_for, rendered_cb, option_label))
+                output.append(
+                    u'<li><label%s>%s %s</label></li>'
+                    % (label_for, rendered_cb, option_label)
+                )
 
             output.append(u'</ul>')
 

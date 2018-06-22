@@ -9,9 +9,11 @@ from .models import Translation
 def get_string(x):
     locale = translation.get_language()
     try:
-        return (Translation.objects.filter(id=x, locale=locale)
-                .filter(localized_string__isnull=False)
-                .values_list('localized_string', flat=True)[0])
+        return (
+            Translation.objects.filter(id=x, locale=locale)
+            .filter(localized_string__isnull=False)
+            .values_list('localized_string', flat=True)[0]
+        )
     except IndexError:
         return u''
 
@@ -26,15 +28,16 @@ class TranslationTextInput(forms.widgets.TextInput):
 
 
 class TranslationTextarea(forms.widgets.Textarea):
-
     def render(self, name, value, attrs=None):
         if isinstance(value, long):
             value = get_string(value)
         return super(TranslationTextarea, self).render(name, value, attrs)
 
     def _has_changed(self, initial, data):
-        return not ((initial is None and data is None) or
-                    (force_text(initial) == force_text(data)))
+        return not (
+            (initial is None and data is None)
+            or (force_text(initial) == force_text(data))
+        )
 
 
 class TransMulti(forms.widgets.MultiWidget):
@@ -44,6 +47,7 @@ class TransMulti(forms.widgets.MultiWidget):
     The backend dumps all the available translations into a set of widgets
     wrapped in div.trans and javascript handles the rest of the UI.
     """
+
     choices = None  # Django expects widgets to have a choices attribute.
 
     def __init__(self, attrs=None):
@@ -62,8 +66,9 @@ class TransMulti(forms.widgets.MultiWidget):
         if value:
             self.widgets = [self.widget() for _ in value]
         else:
-            default_locale = getattr(self, 'default_locale',
-                                     translation.get_language())
+            default_locale = getattr(
+                self, 'default_locale', translation.get_language()
+            )
             value = [Translation(locale=default_locale)]
         return super(TransMulti, self).render(name, value, attrs)
 
@@ -76,8 +81,10 @@ class TransMulti(forms.widgets.MultiWidget):
             return list(qs.filter(localized_string__isnull=False))
         elif isinstance(value, dict):
             # We're getting a datadict, there was a validation error.
-            return [Translation(locale=k, localized_string=v)
-                    for k, v in value.items()]
+            return [
+                Translation(locale=k, localized_string=v)
+                for k, v in value.items()
+            ]
 
     def value_from_datadict(self, data, files, name):
         # All the translations for this field are called {name}_{locale}, so
@@ -86,10 +93,10 @@ class TransMulti(forms.widgets.MultiWidget):
         prefix = '%s_' % name
 
         def locale(s):
-            return s[len(prefix):]
+            return s[len(prefix) :]
 
         def delete_locale(s):
-            return s[len(prefix):-len('_delete')]
+            return s[len(prefix) : -len('_delete')]
 
         # Look for the name without a locale suffix.
         if name in data:
@@ -109,12 +116,18 @@ class TransMulti(forms.widgets.MultiWidget):
         # ...But also add a widget that'll be cloned for when we want to add
         # a new translation. Hide it by default, it's only used in devhub, not
         # the admin (which doesn't need to add new translations).
-        init = self.widget().render(self.name + '_',
-                                    Translation(locale='init'),
-                                    {'class': 'trans-init hidden'})
+        init = self.widget().render(
+            self.name + '_',
+            Translation(locale='init'),
+            {'class': 'trans-init hidden'},
+        )
         # Wrap it all inside a div that the javascript will look for.
         return '<div id="trans-%s" class="trans" data-name="%s">%s%s</div>' % (
-            self.name, self.name, rendered_widgets, init)
+            self.name,
+            self.name,
+            rendered_widgets,
+            init,
+        )
 
 
 class _TransWidget(object):
@@ -125,6 +138,7 @@ class _TransWidget(object):
 
     def render(self, name, value, attrs=None):
         from .fields import switch
+
         attrs = self.build_attrs(attrs)
         lang = to_language(value.locale)
         attrs.update(lang=lang)

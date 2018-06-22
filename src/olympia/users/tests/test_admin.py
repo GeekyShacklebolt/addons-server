@@ -5,7 +5,11 @@ from olympia import amo, core
 from olympia.abuse.models import AbuseReport
 from olympia.activity.models import ActivityLog
 from olympia.amo.tests import (
-    addon_factory, TestCase, user_factory, version_factory)
+    addon_factory,
+    TestCase,
+    user_factory,
+    version_factory,
+)
 from olympia.amo.urlresolvers import reverse
 from olympia.bandwagon.models import Collection
 from olympia.ratings.models import Rating
@@ -31,8 +35,10 @@ class TestUserAdmin(TestCase):
         response = self.client.get(self.detail_url, follow=True)
         assert response.status_code == 403
         response = self.client.post(
-            self.detail_url, {'username': 'foo', 'email': self.user.email},
-            follow=True)
+            self.detail_url,
+            {'username': 'foo', 'email': self.user.email},
+            follow=True,
+        )
         assert response.status_code == 403
         assert self.user.reload().username != 'foo'
 
@@ -44,8 +50,10 @@ class TestUserAdmin(TestCase):
         response = self.client.get(self.detail_url, follow=True)
         assert response.status_code == 200
         response = self.client.post(
-            self.detail_url, {'username': 'foo', 'email': self.user.email},
-            follow=True)
+            self.detail_url,
+            {'username': 'foo', 'email': self.user.email},
+            follow=True,
+        )
         assert response.status_code == 200
         assert self.user.reload().username == 'foo'
 
@@ -53,46 +61,60 @@ class TestUserAdmin(TestCase):
         model_admin = UserAdmin(UserProfile, None)
         assert self.user.picture_url.endswith('anon_user.png')
         assert (
-            model_admin.picture_img(self.user) ==
-            '<img src="%s" />' % self.user.picture_url)
+            model_admin.picture_img(self.user)
+            == '<img src="%s" />' % self.user.picture_url
+        )
 
         self.user.update(picture_type='image/png')
         assert (
-            model_admin.picture_img(self.user) ==
-            '<img src="%s" />' % self.user.picture_url)
+            model_admin.picture_img(self.user)
+            == '<img src="%s" />' % self.user.picture_url
+        )
 
     def test_known_ip_adresses(self):
         self.user.update(last_login_ip='127.1.2.3')
         Rating.objects.create(
-            addon=addon_factory(), user=self.user, ip_address='127.1.2.3')
+            addon=addon_factory(), user=self.user, ip_address='127.1.2.3'
+        )
         dummy_addon = addon_factory()
         Rating.objects.create(
-            addon=dummy_addon, version=dummy_addon.current_version,
-            user=self.user, ip_address='128.1.2.3')
-        Rating.objects.create(
-            addon=dummy_addon, version=version_factory(addon=dummy_addon),
-            user=self.user, ip_address='129.1.2.4')
-        Rating.objects.create(
-            addon=addon_factory(), user=self.user, ip_address='130.1.2.4')
-        Rating.objects.create(
-            addon=addon_factory(), user=self.user, ip_address='130.1.2.4')
+            addon=dummy_addon,
+            version=dummy_addon.current_version,
+            user=self.user,
+            ip_address='128.1.2.3',
+        )
         Rating.objects.create(
             addon=dummy_addon,
-            user=user_factory(), ip_address='255.255.0.0')
+            version=version_factory(addon=dummy_addon),
+            user=self.user,
+            ip_address='129.1.2.4',
+        )
+        Rating.objects.create(
+            addon=addon_factory(), user=self.user, ip_address='130.1.2.4'
+        )
+        Rating.objects.create(
+            addon=addon_factory(), user=self.user, ip_address='130.1.2.4'
+        )
+        Rating.objects.create(
+            addon=dummy_addon, user=user_factory(), ip_address='255.255.0.0'
+        )
         model_admin = UserAdmin(UserProfile, None)
         doc = pq(model_admin.known_ip_adresses(self.user))
         result = doc('ul li').text().split()
         assert len(result) == 4
-        assert (set(result) ==
-                set(['130.1.2.4', '128.1.2.3', '129.1.2.4', '127.1.2.3']))
+        assert set(result) == set(
+            ['130.1.2.4', '128.1.2.3', '129.1.2.4', '127.1.2.3']
+        )
 
     def test_last_known_activity_time(self):
         someone_else = user_factory(username='someone_else')
         addon = addon_factory()
 
         model_admin = UserAdmin(UserProfile, None)
-        assert (unicode(model_admin.last_known_activity_time(self.user)) ==
-                u'(None)')  # Nothing yet.
+        assert (
+            unicode(model_admin.last_known_activity_time(self.user))
+            == u'(None)'
+        )  # Nothing yet.
 
         # Add various activities. They will be attached to whatever user is
         # set in the thread global at the time, so set that in advance.
@@ -113,10 +135,13 @@ class TestUserAdmin(TestCase):
         activity = ActivityLog.create(amo.LOG.EDIT_PROPERTIES, addon)
 
         expected_result = DateFormat(expected_date).format(
-            settings.DATETIME_FORMAT)
+            settings.DATETIME_FORMAT
+        )
 
-        assert (unicode(model_admin.last_known_activity_time(self.user)) ==
-                expected_result)
+        assert (
+            unicode(model_admin.last_known_activity_time(self.user))
+            == expected_result
+        )
 
     def _call_related_content_method(self, method):
         model_admin = UserAdmin(UserProfile, None)
@@ -130,8 +155,9 @@ class TestUserAdmin(TestCase):
         Collection.objects.create(author=self.user, listed=False)
         url, text = self._call_related_content_method('collections_created')
         expected_url = (
-            reverse('admin:bandwagon_collection_changelist') +
-            '?author=%d' % self.user.pk)
+            reverse('admin:bandwagon_collection_changelist')
+            + '?author=%d' % self.user.pk
+        )
         assert url == expected_url
         assert text == '2'
 
@@ -141,12 +167,15 @@ class TestUserAdmin(TestCase):
         addon_factory(users=[self.user, another_user])
         addon_factory(users=[self.user], status=amo.STATUS_PENDING)
         addon_factory(users=[self.user], status=amo.STATUS_DELETED)
-        addon_factory(users=[self.user],
-                      version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED})
+        addon_factory(
+            users=[self.user],
+            version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED},
+        )
         url, text = self._call_related_content_method('addons_created')
         expected_url = (
-            reverse('admin:addons_addon_changelist') +
-            '?authors=%d' % self.user.pk)
+            reverse('admin:addons_addon_changelist')
+            + '?authors=%d' % self.user.pk
+        )
         assert url == expected_url
         assert text == '4'
 
@@ -154,18 +183,23 @@ class TestUserAdmin(TestCase):
         Rating.objects.create(addon=addon_factory(), user=self.user)
         dummy_addon = addon_factory()
         Rating.objects.create(
-            addon=dummy_addon, version=dummy_addon.current_version,
-            user=self.user)
-        Rating.objects.create(
-            addon=dummy_addon, version=version_factory(addon=dummy_addon),
-            user=self.user)
+            addon=dummy_addon,
+            version=dummy_addon.current_version,
+            user=self.user,
+        )
         Rating.objects.create(
             addon=dummy_addon,
-            user=user_factory(), ip_address='255.255.0.0')
+            version=version_factory(addon=dummy_addon),
+            user=self.user,
+        )
+        Rating.objects.create(
+            addon=dummy_addon, user=user_factory(), ip_address='255.255.0.0'
+        )
         url, text = self._call_related_content_method('ratings_created')
         expected_url = (
-            reverse('admin:ratings_rating_changelist') +
-            '?user=%d' % self.user.pk)
+            reverse('admin:ratings_rating_changelist')
+            + '?user=%d' % self.user.pk
+        )
         assert url == expected_url
         assert text == '3'
 
@@ -181,8 +215,9 @@ class TestUserAdmin(TestCase):
         ActivityLog.create(amo.LOG.EDIT_PROPERTIES, addon)
         url, text = self._call_related_content_method('activity')
         expected_url = (
-            reverse('admin:activity_activitylog_changelist') +
-            '?user=%d' % self.user.pk)
+            reverse('admin:activity_activitylog_changelist')
+            + '?user=%d' % self.user.pk
+        )
         assert url == expected_url
         assert text == '2'
 
@@ -195,10 +230,12 @@ class TestUserAdmin(TestCase):
         AbuseReport.objects.create(user=user_factory(), reporter=self.user)
 
         url, text = self._call_related_content_method(
-            'abuse_reports_by_this_user')
+            'abuse_reports_by_this_user'
+        )
         expected_url = (
-            reverse('admin:abuse_abusereport_changelist') +
-            '?reporter=%d' % self.user.pk)
+            reverse('admin:abuse_abusereport_changelist')
+            + '?reporter=%d' % self.user.pk
+        )
         assert url == expected_url
         assert text == '2'
 
@@ -212,9 +249,11 @@ class TestUserAdmin(TestCase):
         AbuseReport.objects.create(user=self.user, reporter=user_factory())
 
         url, text = self._call_related_content_method(
-            'abuse_reports_for_this_user')
+            'abuse_reports_for_this_user'
+        )
         expected_url = (
-            reverse('admin:abuse_abusereport_changelist') +
-            '?user=%d' % self.user.pk)
+            reverse('admin:abuse_abusereport_changelist')
+            + '?user=%d' % self.user.pk
+        )
         assert url == expected_url
         assert text == '2'

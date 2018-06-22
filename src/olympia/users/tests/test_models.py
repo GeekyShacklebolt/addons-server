@@ -19,7 +19,11 @@ from olympia.amo.tests import TestCase, addon_factory, safe_exec, user_factory
 from olympia.bandwagon.models import Collection, CollectionWatcher
 from olympia.ratings.models import Rating
 from olympia.users.models import (
-    DeniedName, UserEmailField, UserForeignKey, UserProfile)
+    DeniedName,
+    UserEmailField,
+    UserForeignKey,
+    UserProfile,
+)
 from olympia.users.utils import find_users
 from olympia.zadmin.models import set_config
 
@@ -124,7 +128,8 @@ class TestUserProfile(TestCase):
 
     def test_welcome_name_anonymous(self):
         user = UserProfile(
-            username='anonymous-bb4f3cbd422e504080e32f2d9bbfcee0')
+            username='anonymous-bb4f3cbd422e504080e32f2d9bbfcee0'
+        )
         assert user.welcome_name == 'Anonymous user bb4f3c'
 
     def test_welcome_name_anonymous_with_display(self):
@@ -181,7 +186,8 @@ class TestUserProfile(TestCase):
 
     def test_staff_only(self):
         group = Group.objects.create(
-            name='Admins of Something', rules='Admin:Something')
+            name='Admins of Something', rules='Admin:Something'
+        )
         user = UserProfile.objects.get(username='jbalogh')
         assert not user.is_staff
         assert not user.is_superuser
@@ -203,12 +209,14 @@ class TestUserProfile(TestCase):
         """
         Test for a preview URL if image is set, or default image otherwise.
         """
-        u = UserProfile(id=1234, picture_type='image/png',
-                        modified=date.today())
+        u = UserProfile(
+            id=1234, picture_type='image/png', modified=date.today()
+        )
         u.picture_url.index('/userpics/0/1/1234.png?modified=')
 
-        u = UserProfile(id=1234567890, picture_type='image/png',
-                        modified=date.today())
+        u = UserProfile(
+            id=1234567890, picture_type='image/png', modified=date.today()
+        )
         u.picture_url.index('/userpics/1234/1234567/1234567890.png?modified=')
 
         u = UserProfile(id=1234, picture_type=None)
@@ -222,20 +230,28 @@ class TestUserProfile(TestCase):
         addon = Addon.objects.get(id=3615)
         u = UserProfile.objects.get(pk=2519)
         version = addon.find_latest_public_listed_version()
-        new_rating = Rating(version=version, user=u, rating=2, body='hello',
-                            addon=addon)
+        new_rating = Rating(
+            version=version, user=u, rating=2, body='hello', addon=addon
+        )
         new_rating.save()
-        new_reply = Rating(version=version, user=u, reply_to=new_rating,
-                           addon=addon, body='my reply')
+        new_reply = Rating(
+            version=version,
+            user=u,
+            reply_to=new_rating,
+            addon=addon,
+            body='my reply',
+        )
         new_reply.save()
 
         review_list = [r.pk for r in u.reviews]
 
         assert len(review_list) == 1
-        assert new_rating.pk in review_list, (
-            'Original review must show up in review list.')
-        assert new_reply.pk not in review_list, (
-            'Developer reply must not show up in review list.')
+        assert (
+            new_rating.pk in review_list
+        ), 'Original review must show up in review list.'
+        assert (
+            new_reply.pk not in review_list
+        ), 'Developer reply must not show up in review list.'
 
     def test_num_addons_listed(self):
         """Test that num_addons_listed is only considering add-ons for which
@@ -283,13 +299,15 @@ class TestUserProfile(TestCase):
 
     def test_get_url_path(self):
         assert UserProfile(username='yolo').get_url_path() == (
-            '/en-US/firefox/user/yolo/')
+            '/en-US/firefox/user/yolo/'
+        )
         assert UserProfile(username='yolo', id=1).get_url_path() == (
-            '/en-US/firefox/user/yolo/')
-        assert UserProfile(id=1).get_url_path() == (
-            '/en-US/firefox/user/1/')
+            '/en-US/firefox/user/yolo/'
+        )
+        assert UserProfile(id=1).get_url_path() == ('/en-US/firefox/user/1/')
         assert UserProfile(username='<yolo>', id=1).get_url_path() == (
-            '/en-US/firefox/user/1/')
+            '/en-US/firefox/user/1/'
+        )
 
     def test_mobile_addons(self):
         user = UserProfile.objects.get(id='4043307')
@@ -318,13 +336,17 @@ class TestUserProfile(TestCase):
         watched_collection1 = Collection.objects.create(name='watched-1')
         watched_collection2 = Collection.objects.create(name='watched-2')
         Collection.objects.create(name='other')
-        CollectionWatcher.objects.create(user=user,
-                                         collection=watched_collection1)
-        CollectionWatcher.objects.create(user=user,
-                                         collection=watched_collection2)
+        CollectionWatcher.objects.create(
+            user=user, collection=watched_collection1
+        )
+        CollectionWatcher.objects.create(
+            user=user, collection=watched_collection2
+        )
         assert len(user.watching) == 2
-        assert tuple(user.watching) == (watched_collection1.pk,
-                                        watched_collection2.pk)
+        assert tuple(user.watching) == (
+            watched_collection1.pk,
+            watched_collection2.pk,
+        )
 
     def test_cannot_set_password(self):
         user = UserProfile.objects.get(id='4043307')
@@ -351,21 +373,22 @@ class TestUserProfile(TestCase):
 
     def test_has_read_developer_agreement(self):
         set_config('last_dev_agreement_change_date', '2018-01-01 00:00')
-        after_change = (
-            datetime(2018, 1, 1) + timedelta(days=1))
-        before_change = (
-            datetime(2018, 1, 1) - timedelta(days=42))
+        after_change = datetime(2018, 1, 1) + timedelta(days=1)
+        before_change = datetime(2018, 1, 1) - timedelta(days=42)
 
         assert not UserProfile().has_read_developer_agreement()
         assert not UserProfile(
-            read_dev_agreement=None).has_read_developer_agreement()
+            read_dev_agreement=None
+        ).has_read_developer_agreement()
         assert not UserProfile(
-            read_dev_agreement=before_change).has_read_developer_agreement()
+            read_dev_agreement=before_change
+        ).has_read_developer_agreement()
 
         # User has read the agreement after it was modified for
         # post-review: it should return True.
         assert UserProfile(
-            read_dev_agreement=after_change).has_read_developer_agreement()
+            read_dev_agreement=after_change
+        ).has_read_developer_agreement()
 
     def test_is_public(self):
         user = UserProfile.objects.get(id=4043307)
@@ -438,6 +461,7 @@ class TestOnChangeName(TestCase):
         # We're in a regular TestCase class so index_addons should have been
         # mocked.
         from olympia.addons.tasks import index_addons
+
         self.index_addons_mock = index_addons
 
     def test_changes_display_name_not_a_listed_author(self):
@@ -479,7 +503,6 @@ class TestOnChangeName(TestCase):
 
 
 class TestUserHistory(TestCase):
-
     def test_user_history(self):
         user = UserProfile.objects.create(email='foo@bar.com')
         assert user.history.count() == 0
@@ -499,26 +522,25 @@ class TestUserHistory(TestCase):
         assert [user] == list(find_users('dark@sith.com'))
 
     def test_user_find_multiple(self):
-        user_1 = UserProfile.objects.create(username='user_1',
-                                            email='luke@jedi.com')
+        user_1 = UserProfile.objects.create(
+            username='user_1', email='luke@jedi.com'
+        )
         user_1.update(email='dark@sith.com')
-        user_2 = UserProfile.objects.create(username='user_2',
-                                            email='luke@jedi.com')
+        user_2 = UserProfile.objects.create(
+            username='user_2', email='luke@jedi.com'
+        )
         assert [user_1, user_2] == list(find_users('luke@jedi.com'))
 
 
 class TestUserManager(TestCase):
-    fixtures = ('users/test_backends', )
+    fixtures = ('users/test_backends',)
 
     def test_create_user(self):
         user = UserProfile.objects.create_user("test", "test@test.com", 'xxx')
         assert user.pk is not None
 
     def test_create_superuser(self):
-        user = UserProfile.objects.create_superuser(
-            "test",
-            "test@test.com",
-        )
+        user = UserProfile.objects.create_superuser("test", "test@test.com")
         assert user.pk is not None
         Group.objects.get(name="Admins") in user.groups.all()
         assert user.is_staff
@@ -531,18 +553,21 @@ def test_user_foreign_key_supports_migration():
     Since `UserForeignKey` is a ForeignKey migrations pass `to=` explicitly
     and we have to pop it in our __init__.
     """
-    fields = {
-        'charfield': UserForeignKey(),
-    }
+    fields = {'charfield': UserForeignKey()}
 
-    migration = type(str('Migration'), (migrations.Migration,), {
-        'operations': [
-            migrations.CreateModel(
-                name='MyModel', fields=tuple(fields.items()),
-                bases=(models.Model,)
-            ),
-        ],
-    })
+    migration = type(
+        str('Migration'),
+        (migrations.Migration,),
+        {
+            'operations': [
+                migrations.CreateModel(
+                    name='MyModel',
+                    fields=tuple(fields.items()),
+                    bases=(models.Model,),
+                )
+            ]
+        },
+    )
     writer = MigrationWriter(migration)
     output = writer.as_string()
 

@@ -36,19 +36,20 @@ class SigningAPITestCase(APIKeyAuthTestCase):
 
 
 class BaseUploadVersionCase(SigningAPITestCase):
-
     def setUp(self):
         super(BaseUploadVersionCase, self).setUp()
         self.guid = '{2fa4ed95-0317-4c6a-a74c-5f3e3912c1f9}'
         self.view = VersionView.as_view()
         create_version_patcher = mock.patch(
             'olympia.devhub.tasks.create_version_for_upload',
-            tasks.create_version_for_upload.non_atomic)
+            tasks.create_version_for_upload.non_atomic,
+        )
         self.create_version_for_upload = create_version_patcher.start()
         self.addCleanup(create_version_patcher.stop)
 
         auto_sign_version_patcher = mock.patch(
-            'olympia.devhub.views.auto_sign_version')
+            'olympia.devhub.views.auto_sign_version'
+        )
         self.auto_sign_version = auto_sign_version_patcher.start()
         self.addCleanup(auto_sign_version_patcher.stop)
 
@@ -67,11 +68,22 @@ class BaseUploadVersionCase(SigningAPITestCase):
 
     def xpi_filepath(self, addon, version):
         return os.path.join(
-            'src', 'olympia', 'signing', 'fixtures',
-            '{addon}-{version}.xpi'.format(addon=addon, version=version))
+            'src',
+            'olympia',
+            'signing',
+            'fixtures',
+            '{addon}-{version}.xpi'.format(addon=addon, version=version),
+        )
 
-    def request(self, method='PUT', url=None, version='3.0',
-                addon='@upload-version', filename=None, channel=None):
+    def request(
+        self,
+        method='PUT',
+        url=None,
+        version='3.0',
+        addon='@upload-version',
+        filename=None,
+        channel=None,
+    ):
         if filename is None:
             filename = self.xpi_filepath(addon, version)
         if url is None:
@@ -84,9 +96,11 @@ class BaseUploadVersionCase(SigningAPITestCase):
                 data['channel'] = channel
 
             return getattr(self.client, method.lower())(
-                url, data,
+                url,
+                data,
                 HTTP_AUTHORIZATION=self.authorization(),
-                format='multipart')
+                format='multipart',
+            )
 
     def make_admin(self, user):
         admin_group = Group.objects.create(name='Admin', rules='*:*')
@@ -94,7 +108,6 @@ class BaseUploadVersionCase(SigningAPITestCase):
 
 
 class TestUploadVersion(BaseUploadVersionCase):
-
     def test_not_authenticated(self):
         # Use self.client.put so that we don't add the authorization header.
         response = self.client.put(self.url(self.guid, '12.5'))
@@ -118,7 +131,8 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert addon.has_author(self.user)
         assert addon.status == amo.STATUS_NULL
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         assert latest_version
         assert latest_version.channel == amo.RELEASE_CHANNEL_UNLISTED
         self.auto_sign_version.assert_called_with(latest_version)
@@ -137,7 +151,8 @@ class TestUploadVersion(BaseUploadVersionCase):
 
     def test_user_does_not_own_addon(self):
         self.user = UserProfile.objects.create(
-            read_dev_agreement=datetime.now())
+            read_dev_agreement=datetime.now()
+        )
         self.api_key = self.create_api_key(self.user, 'bar')
         response = self.request('PUT', self.url(self.guid, '3.0'))
         assert response.status_code == 403
@@ -145,7 +160,8 @@ class TestUploadVersion(BaseUploadVersionCase):
 
     def test_admin_does_not_own_addon(self):
         self.user = UserProfile.objects.create(
-            read_dev_agreement=datetime.now())
+            read_dev_agreement=datetime.now()
+        )
         self.api_key = self.create_api_key(self.user, 'bar')
         self.make_admin(self.user)
         response = self.request('PUT', self.url(self.guid, '3.0'))
@@ -156,11 +172,13 @@ class TestUploadVersion(BaseUploadVersionCase):
         response = self.request('PUT', self.url(self.guid, '2.5'))
         assert response.status_code == 400
         assert response.data['error'] == (
-            'Version does not match the manifest file.')
+            'Version does not match the manifest file.'
+        )
 
     def test_version_already_exists(self):
         response = self.request(
-            'PUT', self.url(self.guid, '2.1.072'), version='2.1.072')
+            'PUT', self.url(self.guid, '2.1.072'), version='2.1.072'
+        )
         assert response.status_code == 409
         assert response.data['error'] == 'Version already exists.'
 
@@ -208,8 +226,9 @@ class TestUploadVersion(BaseUploadVersionCase):
         self.create_version('3.0')
         version = Version.objects.get(addon__guid=self.guid, version='3.0')
         version.update(reviewed=datetime.today())
-        version.files.get().update(reviewed=datetime.today(),
-                                   status=amo.STATUS_DISABLED)
+        version.files.get().update(
+            reviewed=datetime.today(), status=amo.STATUS_DISABLED
+        )
 
         response = self.request('PUT', self.url(self.guid, '3.0'))
         assert response.status_code == 409
@@ -227,16 +246,19 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert not qs.exists()
         response = self.request(
             'PUT',
-            addon=guid, version='0.1',
+            addon=guid,
+            version='0.1',
             filename='src/olympia/files/fixtures/files/'
-                     'telemetry_experiment.xpi')
+            'telemetry_experiment.xpi',
+        )
         assert response.status_code == 201
         assert qs.exists()
         addon = qs.get()
         assert addon.has_author(self.user)
         assert addon.status == amo.STATUS_NULL
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         assert latest_version
         assert latest_version.channel == amo.RELEASE_CHANNEL_UNLISTED
         self.auto_sign_version.assert_called_with(latest_version)
@@ -247,12 +269,15 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert not qs.exists()
         response = self.request(
             'PUT',
-            addon=guid, version='0.1',
+            addon=guid,
+            version='0.1',
             filename='src/olympia/files/fixtures/files/'
-                     'telemetry_experiment.xpi')
+            'telemetry_experiment.xpi',
+        )
         assert response.status_code == 400
         assert response.data['error'] == (
-            'You cannot submit this type of add-on')
+            'You cannot submit this type of add-on'
+        )
 
     def test_mozilla_signed_allowed(self):
         guid = '@webextension-guid'
@@ -261,16 +286,19 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert not qs.exists()
         response = self.request(
             'PUT',
-            addon=guid, version='0.0.1',
+            addon=guid,
+            version='0.0.1',
             filename='src/olympia/files/fixtures/files/'
-                     'webextension_signed_already.xpi')
+            'webextension_signed_already.xpi',
+        )
         assert response.status_code == 201
         assert qs.exists()
         addon = qs.get()
         assert addon.has_author(self.user)
         assert addon.status == amo.STATUS_NULL
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         assert latest_version
         assert latest_version.channel == amo.RELEASE_CHANNEL_UNLISTED
         self.auto_sign_version.assert_called_with(latest_version)
@@ -283,12 +311,15 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert not qs.exists()
         response = self.request(
             'PUT',
-            addon=guid, version='0.0.1',
+            addon=guid,
+            version='0.0.1',
             filename='src/olympia/files/fixtures/files/'
-                     'webextension_signed_already.xpi')
+            'webextension_signed_already.xpi',
+        )
         assert response.status_code == 400
         assert response.data['error'] == (
-            'You cannot submit a Mozilla Signed Extension')
+            'You cannot submit a Mozilla Signed Extension'
+        )
 
     def test_system_addon_allowed(self):
         guid = 'systemaddon@mozilla.org'
@@ -297,16 +328,18 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert not qs.exists()
         response = self.request(
             'PUT',
-            addon=guid, version='0.0.1',
-            filename='src/olympia/files/fixtures/files/'
-                     'mozilla_guid.xpi')
+            addon=guid,
+            version='0.0.1',
+            filename='src/olympia/files/fixtures/files/' 'mozilla_guid.xpi',
+        )
         assert response.status_code == 201
         assert qs.exists()
         addon = qs.get()
         assert addon.has_author(self.user)
         assert addon.status == amo.STATUS_NULL
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         assert latest_version
         assert latest_version.channel == amo.RELEASE_CHANNEL_UNLISTED
         self.auto_sign_version.assert_called_with(latest_version)
@@ -318,13 +351,15 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert not qs.exists()
         response = self.request(
             'PUT',
-            addon=guid, version='0.1',
-            filename='src/olympia/files/fixtures/files/'
-                     'mozilla_guid.xpi')
+            addon=guid,
+            version='0.1',
+            filename='src/olympia/files/fixtures/files/' 'mozilla_guid.xpi',
+        )
         assert response.status_code == 400
         assert response.data['error'] == (
             u'You cannot submit an add-on with a guid ending "@mozilla.org" '
-            u'or "@shield.mozilla.org" or "@pioneer.mozilla.org"')
+            u'or "@shield.mozilla.org" or "@pioneer.mozilla.org"'
+        )
 
     def test_system_addon_update_allowed(self):
         """Updates to system addons are allowed from anyone."""
@@ -332,20 +367,21 @@ class TestUploadVersion(BaseUploadVersionCase):
         self.user.update(email='pinkpanda@notzilla.com')
         orig_addon = addon_factory(
             guid='systemaddon@mozilla.org',
-            version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED})
-        AddonUser.objects.create(
-            addon=orig_addon,
-            user=self.user)
+            version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED},
+        )
+        AddonUser.objects.create(addon=orig_addon, user=self.user)
         response = self.request(
             'PUT',
-            addon=guid, version='0.0.1',
-            filename='src/olympia/files/fixtures/files/'
-                     'mozilla_guid.xpi')
+            addon=guid,
+            version='0.0.1',
+            filename='src/olympia/files/fixtures/files/' 'mozilla_guid.xpi',
+        )
         assert response.status_code == 202
         addon = Addon.unfiltered.filter(guid=guid).get()
         assert addon.versions.count() == 2
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         self.auto_sign_version.assert_called_with(latest_version)
 
     def test_invalid_version_response_code(self):
@@ -355,7 +391,8 @@ class TestUploadVersion(BaseUploadVersionCase):
             'PUT',
             self.url(self.guid, '1.0'),
             addon='@create-webextension-invalid-version',
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 400
 
     def test_raises_response_code(self):
@@ -370,18 +407,21 @@ class TestUploadVersion(BaseUploadVersionCase):
         addon.update(status=amo.STATUS_DISABLED)
 
         response = self.request(
-            'PUT', self.url(self.guid, '3.0'), version='3.0')
+            'PUT', self.url(self.guid, '3.0'), version='3.0'
+        )
         assert response.status_code == 400
         error_msg = 'cannot add versions to an addon that has status: %s.' % (
-            amo.STATUS_CHOICES_ADDON[amo.STATUS_DISABLED])
+            amo.STATUS_CHOICES_ADDON[amo.STATUS_DISABLED]
+        )
         assert error_msg in response.data['error']
 
     def test_channel_ignored_for_new_addon(self):
         guid = '@create-version'
         qs = Addon.unfiltered.filter(guid=guid)
         assert not qs.exists()
-        response = self.request('PUT', addon=guid, version='1.0',
-                                channel='listed')
+        response = self.request(
+            'PUT', addon=guid, version='1.0', channel='listed'
+        )
         assert response.status_code == 201
         addon = qs.get()
         assert addon.find_latest_version(channel=amo.RELEASE_CHANNEL_UNLISTED)
@@ -401,7 +441,8 @@ class TestUploadVersion(BaseUploadVersionCase):
         new_version.update(channel=amo.RELEASE_CHANNEL_UNLISTED)
 
         response = self.request(
-            'PUT', self.url(self.guid, '4.0-beta1'), version='4.0-beta1')
+            'PUT', self.url(self.guid, '4.0-beta1'), version='4.0-beta1'
+        )
         assert response.status_code == 202, response.data['error']
         assert 'processed' in response.data
         third_version = addon.versions.latest()
@@ -413,8 +454,9 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert addon.versions.count() == 1
         assert addon.versions.all()[0].channel == amo.RELEASE_CHANNEL_LISTED
 
-        response = self.request('PUT', self.url(self.guid, '3.0'),
-                                channel='unlisted')
+        response = self.request(
+            'PUT', self.url(self.guid, '3.0'), channel='unlisted'
+        )
         assert response.status_code == 202, response.data['error']
         assert 'processed' in response.data
         assert addon.versions.latest().channel == amo.RELEASE_CHANNEL_UNLISTED
@@ -425,8 +467,9 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert addon.versions.count() == 1
         assert addon.has_complete_metadata()
 
-        response = self.request('PUT', self.url(self.guid, '3.0'),
-                                channel='listed')
+        response = self.request(
+            'PUT', self.url(self.guid, '3.0'), channel='listed'
+        )
         assert response.status_code == 202, response.data['error']
         assert 'processed' in response.data
         assert addon.versions.latest().channel == amo.RELEASE_CHANNEL_LISTED
@@ -437,14 +480,13 @@ class TestUploadVersion(BaseUploadVersionCase):
         assert addon.versions.count() == 1
         addon.current_version.update(license=None)  # Make addon incomplete.
         addon.versions.latest().update(channel=amo.RELEASE_CHANNEL_UNLISTED)
-        assert not addon.has_complete_metadata(
-            has_listed_versions=True)
+        assert not addon.has_complete_metadata(has_listed_versions=True)
 
-        response = self.request('PUT', self.url(self.guid, '3.0'),
-                                channel='listed')
+        response = self.request(
+            'PUT', self.url(self.guid, '3.0'), channel='listed'
+        )
         assert response.status_code == 400
-        error_msg = (
-            'You cannot add a listed version to this addon via the API')
+        error_msg = 'You cannot add a listed version to this addon via the API'
         assert error_msg in response.data['error']
 
 
@@ -464,7 +506,8 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'POST',
             url=reverse_ns('signing.version'),
             addon='@create-webextension',
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 201
 
         guid = response.data['guid']
@@ -478,11 +521,11 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
         assert addon.has_author(self.user)
         assert addon.status == amo.STATUS_NULL
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         assert latest_version
         assert latest_version.channel == amo.RELEASE_CHANNEL_UNLISTED
-        self.auto_sign_version.assert_called_with(
-            latest_version)
+        self.auto_sign_version.assert_called_with(latest_version)
 
     def test_addon_does_not_exist_webextension_with_guid_in_url(self):
         guid = '@custom-guid-provided'
@@ -493,7 +536,8 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'PUT',  # PUT, not POST, since we're specifying a guid in the URL.
             filename=filename,
             addon=guid,  # Will end up in the url since we're not passing one.
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 201
 
         assert response.data['guid'] == '@custom-guid-provided'
@@ -505,11 +549,11 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
         assert addon.has_author(self.user)
         assert addon.status == amo.STATUS_NULL
         latest_version = addon.find_latest_version(
-            channel=amo.RELEASE_CHANNEL_UNLISTED)
+            channel=amo.RELEASE_CHANNEL_UNLISTED
+        )
         assert latest_version
         assert latest_version.channel == amo.RELEASE_CHANNEL_UNLISTED
-        self.auto_sign_version.assert_called_with(
-            latest_version)
+        self.auto_sign_version.assert_called_with(latest_version)
 
     def test_addon_does_not_exist_webextension_with_invalid_guid_in_url(self):
         guid = 'custom-invalid-guid-provided'
@@ -520,7 +564,8 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'PUT',  # PUT, not POST, since we're specifying a guid in the URL.
             filename=filename,
             addon=guid,  # Will end up in the url since we're not passing one.
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 400
         assert response.data['error'] == u'Invalid GUID in URL'
         assert not Addon.unfiltered.filter(guid=guid).exists()
@@ -530,7 +575,8 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'POST',
             url=reverse_ns('signing.version'),
             addon='@create-version-no-id',
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 400
 
     def test_webextension_reuse_guid(self):
@@ -538,7 +584,8 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'POST',
             url=reverse_ns('signing.version'),
             addon='@create-webextension-with-guid',
-            version='1.0')
+            version='1.0',
+        )
 
         guid = response.data['guid']
         assert guid == '@webextension-with-guid'
@@ -553,14 +600,16 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'POST',
             url=reverse_ns('signing.version'),
             addon='@create-webextension-with-guid',
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 201
 
         response = self.request(
             'POST',
             url=reverse_ns('signing.version'),
             addon='@create-webextension-with-guid',
-            version='1.0')
+            version='1.0',
+        )
         assert response.status_code == 400
         assert response.data['error'] == 'Duplicate add-on ID found.'
 
@@ -571,23 +620,25 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
             'POST',
             url=reverse_ns('signing.version'),
             addon='@create-webextension-with-guid-and-version',
-            version='99.0')
+            version='99.0',
+        )
         assert response.status_code == 201
         assert (
-            response.data['guid'] ==
-            '@create-webextension-with-guid-and-version')
+            response.data['guid']
+            == '@create-webextension-with-guid-and-version'
+        )
         assert response.data['version'] == '99.0'
 
     def test_webextension_resolve_translations(self):
-        fname = (
-            'src/olympia/files/fixtures/files/notify-link-clicks-i18n.xpi')
+        fname = 'src/olympia/files/fixtures/files/notify-link-clicks-i18n.xpi'
 
         response = self.request(
             'POST',
             url=reverse_ns('signing.version'),
             addon='@notify-link-clicks-i18n',
             version='1.0',
-            filename=fname)
+            filename=fname,
+        )
         assert response.status_code == 201
 
         addon = Addon.unfiltered.get(guid=response.data['guid'])
@@ -596,7 +647,8 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
         assert addon.default_locale == 'en-US'
         assert addon.name == 'Notify link clicks i18n'
         assert addon.summary == (
-            'Shows a notification when the user clicks on links.')
+            'Shows a notification when the user clicks on links.'
+        )
 
         translation.activate('de')
         addon.reload()
@@ -604,46 +656,44 @@ class TestUploadVersionWebextension(BaseUploadVersionCase):
         assert addon.summary == u'Benachrichtigt den Benutzer über Linkklicks'
 
     def test_too_long_guid_not_in_manifest_forbidden(self):
-        fname = (
-            'src/olympia/files/fixtures/files/webextension_no_id.xpi')
+        fname = 'src/olympia/files/fixtures/files/webextension_no_id.xpi'
 
         guid = (
             'this_guid_is_longer_than_the_limit_of_64_chars_see_bug_1201176_'
-            'and_should_fail@webextension-guid')
+            'and_should_fail@webextension-guid'
+        )
 
         response = self.request(
-            'PUT',
-            url=self.url(guid, '1.0'),
-            version='1.0',
-            filename=fname)
+            'PUT', url=self.url(guid, '1.0'), version='1.0', filename=fname
+        )
         assert response.status_code == 400
         assert response.data == {
             'error': (
                 u'Please specify your Add-on GUID in the manifest if it\'s '
-                u'longer than 64 characters.')
+                u'longer than 64 characters.'
+            )
         }
 
         assert not Addon.unfiltered.filter(guid=guid).exists()
 
     def test_too_long_guid_in_manifest_allowed(self):
         fname = (
-            'src/olympia/files/fixtures/files/webextension_too_long_guid.xpi')
+            'src/olympia/files/fixtures/files/webextension_too_long_guid.xpi'
+        )
 
         guid = (
             'this_guid_is_longer_than_the_limit_of_64_chars_see_bug_1201176_'
-            'and_should_fail@webextension-guid')
+            'and_should_fail@webextension-guid'
+        )
 
         response = self.request(
-            'PUT',
-            url=self.url(guid, '1.0'),
-            version='1.0',
-            filename=fname)
+            'PUT', url=self.url(guid, '1.0'), version='1.0', filename=fname
+        )
         assert response.status_code == 201
         assert Addon.unfiltered.filter(guid=guid).exists()
 
 
 class TestCheckVersion(BaseUploadVersionCase):
-
     def test_not_authenticated(self):
         # Use self.client.get so that we don't add the authorization header.
         response = self.client.get(self.url(self.guid, '12.5'))
@@ -657,7 +707,8 @@ class TestCheckVersion(BaseUploadVersionCase):
     def test_user_does_not_own_addon(self):
         self.create_version('3.0')
         self.user = UserProfile.objects.create(
-            read_dev_agreement=datetime.now())
+            read_dev_agreement=datetime.now()
+        )
         self.api_key = self.create_api_key(self.user, 'bar')
         response = self.get(self.url(self.guid, '3.0'))
         assert response.status_code == 403
@@ -666,7 +717,8 @@ class TestCheckVersion(BaseUploadVersionCase):
     def test_admin_can_view(self):
         self.create_version('3.0')
         self.user = UserProfile.objects.create(
-            read_dev_agreement=datetime.now())
+            read_dev_agreement=datetime.now()
+        )
         self.make_admin(self.user)
         self.api_key = self.create_api_key(self.user, 'bar')
         response = self.get(self.url(self.guid, '3.0'))
@@ -676,8 +728,10 @@ class TestCheckVersion(BaseUploadVersionCase):
     def test_version_does_not_exist(self):
         response = self.get(self.url(self.guid, '2.5'))
         assert response.status_code == 404
-        assert (response.data['error'] ==
-                'No uploaded file for that addon and version.')
+        assert (
+            response.data['error']
+            == 'No uploaded file for that addon and version.'
+        )
 
     def test_version_exists(self):
         self.create_version('3.0')
@@ -708,7 +762,8 @@ class TestCheckVersion(BaseUploadVersionCase):
         # This will create a version for the add-on with guid @create-version
         # using a new user.
         self.user = UserProfile.objects.create(
-            read_dev_agreement=datetime.now())
+            read_dev_agreement=datetime.now()
+        )
         self.api_key = self.create_api_key(self.user, 'bar')
         response = self.request('PUT', addon='@create-version', version='1.0')
         assert response.status_code == 201
@@ -716,7 +771,8 @@ class TestCheckVersion(BaseUploadVersionCase):
 
         # Check that the user that created the upload can access it properly.
         response = self.get(
-            self.url('@create-version', '1.0', upload.uuid.hex))
+            self.url('@create-version', '1.0', upload.uuid.hex)
+        )
         assert response.status_code == 200
         assert 'processed' in response.data
 
@@ -733,21 +789,24 @@ class TestCheckVersion(BaseUploadVersionCase):
 
     def test_version_download_url(self):
         version_string = '3.0'
-        qs = File.objects.filter(version__addon__guid=self.guid,
-                                 version__version=version_string)
+        qs = File.objects.filter(
+            version__addon__guid=self.guid, version__version=version_string
+        )
         assert not qs.exists()
         self.create_version(version_string)
         response = self.get(self.url(self.guid, version_string))
         assert response.status_code == 200
         file_ = qs.get()
         assert response.data['files'][0]['download_url'] == absolutify(
-            reverse_ns('signing.file', kwargs={'file_id': file_.id}) +
-            '/delicious_bookmarks-3.0-fx.xpi?src=api')
+            reverse_ns('signing.file', kwargs={'file_id': file_.id})
+            + '/delicious_bookmarks-3.0-fx.xpi?src=api'
+        )
 
     def test_file_hash(self):
         version_string = '3.0'
-        qs = File.objects.filter(version__addon__guid=self.guid,
-                                 version__version=version_string)
+        qs = File.objects.filter(
+            version__addon__guid=self.guid, version__version=version_string
+        )
         assert not qs.exists()
         self.create_version(version_string)
         response = self.get(self.url(self.guid, version_string))
@@ -755,8 +814,9 @@ class TestCheckVersion(BaseUploadVersionCase):
         file_ = qs.get()
 
         filename = self.xpi_filepath('@upload-version', version_string)
-        assert response.data['files'][0]['hash'] == \
-            file_.generate_hash(filename=filename)
+        assert response.data['files'][0]['hash'] == file_.generate_hash(
+            filename=filename
+        )
 
     def test_has_failed_upload(self):
         addon = Addon.objects.get(guid=self.guid)
@@ -768,7 +828,6 @@ class TestCheckVersion(BaseUploadVersionCase):
 
 
 class TestSignedFile(SigningAPITestCase):
-
     def setUp(self):
         super(TestSignedFile, self).setUp()
         self.file_ = self.create_file()
@@ -778,15 +837,16 @@ class TestSignedFile(SigningAPITestCase):
 
     def create_file(self):
         addon = addon_factory(
-            name='thing', version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED},
-            users=[self.user])
+            name='thing',
+            version_kw={'channel': amo.RELEASE_CHANNEL_UNLISTED},
+            users=[self.user],
+        )
         return addon.latest_unlisted_version.all_files[0]
 
     def test_can_download_once_authenticated(self):
         response = self.get(self.url())
         assert response.status_code == 200
-        assert response[settings.XSENDFILE_HEADER] == (
-            self.file_.file_path)
+        assert response[settings.XSENDFILE_HEADER] == (self.file_.file_path)
 
     def test_cannot_download_without_authentication(self):
         response = self.client.get(self.url())  # no auth

@@ -17,9 +17,7 @@ from . import models
 
 class AddonAdmin(admin.ModelAdmin):
     class Media:
-        css = {
-            'all': ('css/admin/l10n.css',)
-        }
+        css = {'all': ('css/admin/l10n.css',)}
         js = ('js/admin/l10n.js',)
 
     exclude = ('authors',)
@@ -27,31 +25,58 @@ class AddonAdmin(admin.ModelAdmin):
     list_filter = ('type', 'status')
 
     fieldsets = (
-        (None, {
-            'fields': ('name', 'guid', 'default_locale', 'type', 'status'),
-        }),
-        ('Details', {
-            'fields': ('summary', 'description', 'homepage', 'eula',
-                       'privacy_policy', 'developer_comments', 'icon_type',
-                       ),
-        }),
-        ('Support', {
-            'fields': ('support_url', 'support_email'),
-        }),
-        ('Stats', {
-            'fields': ('average_rating', 'bayesian_rating', 'total_ratings',
-                       'text_ratings_count',
-                       'weekly_downloads', 'total_downloads',
-                       'average_daily_users'),
-        }),
-        ('Truthiness', {
-            'fields': ('disabled_by_user', 'view_source', 'requires_payment',
-                       'public_stats', 'is_experimental',
-                       'external_software', 'dev_agreement'),
-        }),
-        ('Dictionaries', {
-            'fields': ('target_locale', 'locale_disambiguation'),
-        }))
+        (
+            None,
+            {'fields': ('name', 'guid', 'default_locale', 'type', 'status')},
+        ),
+        (
+            'Details',
+            {
+                'fields': (
+                    'summary',
+                    'description',
+                    'homepage',
+                    'eula',
+                    'privacy_policy',
+                    'developer_comments',
+                    'icon_type',
+                )
+            },
+        ),
+        ('Support', {'fields': ('support_url', 'support_email')}),
+        (
+            'Stats',
+            {
+                'fields': (
+                    'average_rating',
+                    'bayesian_rating',
+                    'total_ratings',
+                    'text_ratings_count',
+                    'weekly_downloads',
+                    'total_downloads',
+                    'average_daily_users',
+                )
+            },
+        ),
+        (
+            'Truthiness',
+            {
+                'fields': (
+                    'disabled_by_user',
+                    'view_source',
+                    'requires_payment',
+                    'public_stats',
+                    'is_experimental',
+                    'external_software',
+                    'dev_agreement',
+                )
+            },
+        ),
+        (
+            'Dictionaries',
+            {'fields': ('target_locale', 'locale_disambiguation')},
+        ),
+    )
 
     def queryset(self, request):
         return models.Addon.unfiltered
@@ -74,7 +99,6 @@ class CompatOverrideRangeInline(admin.TabularInline):
 
 
 class CompatOverrideAdminForm(forms.ModelForm):
-
     def clean(self):
         if '_confirm' in self.data:
             raise forms.ValidationError('Click "Save" to confirm changes.')
@@ -97,7 +121,8 @@ class ReplacementAddonForm(forms.ModelForm):
                 if path.startswith(site):
                     raise forms.ValidationError(
                         'Paths for [%s] should be relative, not full URLs '
-                        'including the domain name' % site)
+                        'including the domain name' % site
+                    )
                 validators.URLValidator()(path)
             else:
                 path = ('/' if not path.startswith('/') else '') + path
@@ -118,7 +143,8 @@ class ReplacementAddonAdmin(admin.ModelAdmin):
         guid_param = urlencode({'guid': obj.guid})
         return format_html(
             '<a href="{}">Test</a>',
-            reverse('addons.find_replacement') + '?%s' % guid_param)
+            reverse('addons.find_replacement') + '?%s' % guid_param,
+        )
 
     def guid_slug(self, obj):
         try:
@@ -138,12 +164,14 @@ class ReplacementAddonAdmin(admin.ModelAdmin):
         # won't be able to make any changes but they can see the list.
         if obj is not None:
             return super(ReplacementAddonAdmin, self).has_change_permission(
-                request, obj=obj)
+                request, obj=obj
+            )
         else:
-            return (
-                acl.action_allowed(request, amo.permissions.ADDONS_EDIT) or
-                super(ReplacementAddonAdmin, self).has_change_permission(
-                    request, obj=obj))
+            return acl.action_allowed(
+                request, amo.permissions.ADDONS_EDIT
+            ) or super(ReplacementAddonAdmin, self).has_change_permission(
+                request, obj=obj
+            )
 
 
 admin.site.register(models.DeniedGuid)

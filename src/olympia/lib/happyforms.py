@@ -16,8 +16,9 @@ class BaseFormMixin(object):
             # value_from_datadict() gets the data from the data dictionaries.
             # Each widget type knows how to retrieve its own data, because some
             # widgets split data over several HTML fields.
-            value = field.widget.value_from_datadict(self.data, self.files,
-                                                     self.add_prefix(name))
+            value = field.widget.value_from_datadict(
+                self.data, self.files, self.add_prefix(name)
+            )
 
             try:
                 if isinstance(field, FileField):
